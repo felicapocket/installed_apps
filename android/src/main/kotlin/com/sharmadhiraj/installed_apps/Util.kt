@@ -17,17 +17,27 @@ class Util {
             platformType: PlatformType?,
         ): HashMap<String, Any?> {
             val map = HashMap<String, Any?>()
-            map["name"] = packageManager.getApplicationLabel(app)
-            map["package_name"] = app.packageName
-            map["icon"] =
-                if (withIcon) DrawableUtil.drawableToByteArray(app.loadIcon(packageManager))
-                else ByteArray(0)
-            val packageInfo = packageManager.getPackageInfo(app.packageName, 0)
-            map["version_name"] = packageInfo.versionName
-            map["version_code"] = getVersionCode(packageInfo)
-            map["built_with"] = platformType?.value ?: BuiltWithUtil.getPlatform(packageInfo.applicationInfo)
-            map["installed_timestamp"] = File(packageInfo.applicationInfo.sourceDir).lastModified()
-            return map
+            try {
+                val packageInfo = packageManager.getPackageInfo(app.packageName, 0)
+                val builtWith = platformType?.value ?: packageInfo.applicationInfo?.let {
+                    BuiltWithUtil.getPlatform(it)
+                }
+                val installedTimestamp = packageInfo.applicationInfo?.sourceDir?.let {
+                    File(it).lastModified()
+                }
+                map["name"] = packageManager.getApplicationLabel(app)
+                map["package_name"] = app.packageName
+                map["icon"] =
+                    if (withIcon) DrawableUtil.drawableToByteArray(app.loadIcon(packageManager))
+                    else ByteArray(0)
+                map["version_name"] = packageInfo.versionName
+                map["version_code"] = getVersionCode(packageInfo)
+                map["built_with"] = builtWith
+                map["installed_timestamp"] = installedTimestamp
+                return map
+            } catch (t: Throwable) {
+                return map
+            }
         }
 
         fun getPackageManager(context: Context): PackageManager {
